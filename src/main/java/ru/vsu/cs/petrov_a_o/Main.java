@@ -2,64 +2,81 @@ package ru.vsu.cs.petrov_a_o;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
-class DDAInterpolatedLineDrawing extends JPanel {
+
+class DynamicLineDrawing extends JPanel {
 
     private BufferedImage image;
+    private int centerX, centerY;
+    private int prevX2, prevY2; // Предыдущие конечные координаты линии
+    private int x2, y2; // Текущие конечные координаты линии
+    private Color color1, color2;
 
-    public DDAInterpolatedLineDrawing(int width, int height) {
+    public DynamicLineDrawing(int width, int height) {
         image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        centerX = width / 2;
+        centerY = height / 2;
+        x2 = centerX;
+        y2 = centerY;
+        color1 = Color.RED;
+        color2 = Color.BLUE;
+
+        addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                x2 = e.getX();
+                y2 = e.getY();
+                repaint();
+            }
+        });
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         g.drawImage(image, 0, 0, this);
+        drawInterpolatedLine(centerX, centerY, x2, y2, color1, color2);
     }
 
     public void drawInterpolatedLine(int x1, int y1, int x2, int y2, Color color1, Color color2) {
-        //Вычисление разницы в координатах по осям x и y, а также определяется количество шагов, которые необходимо сделать для отрисовки линии
         int dx = x2 - x1;
         int dy = y2 - y1;
-        //Выбор максимальной разницы по модулю между dx и dy для того, чтобы линия рисовалась правильно независимо от направления
         int steps = Math.max(Math.abs(dx), Math.abs(dy));
-        //Извлечение компонентов цветов color1 и color2, чтобы потом интерполировать цвет между ними
+
         float[] color1Components = color1.getRGBColorComponents(null);
         float[] color2Components = color2.getRGBColorComponents(null);
-        // interpolatedColorComponents используется для хранения промежуточных значений интерполированного цвета
+
         float[] interpolatedColorComponents = new float[3];
 
         for (int i = 0; i <= steps; i++) {
-            float t = (float) i / steps; // Текущий шаг интерполяции
+            float t = (float) i / steps;
 
-            for (int j = 0; j < 3; j++) { /* Интерполяция цвета: вычисление новых значений компонентов цвета (red, green, blue)
-                                  для каждого t в интервале от 0 до 1, используя линейную интерполяцию между color1 и color2. */
+            for (int j = 0; j < 3; j++) {
                 interpolatedColorComponents[j] = color1Components[j] + (color2Components[j] - color1Components[j]) * t;
             }
-            //Создание нового объекта Color с интерполированными компонентами и получение его целочисленного представления RGB
+
             int interpolatedColorRGB = new Color(interpolatedColorComponents[0], interpolatedColorComponents[1],
                     interpolatedColorComponents[2]).getRGB();
 
-            int x = Math.round(x1 + (i * dx) / steps); // Вычисление текущей координаты (x, y) для текущего шага
-            int y = Math.round(y1 + (i * dy) / steps); // интерполяции, используя линейную интерполяцию
+            int x = Math.round(x1 + (i * dx) / steps);
+            int y = Math.round(y1 + (i * dy) / steps);
 
-            image.setRGB(x, y, interpolatedColorRGB); // Установление цвета пикселя с  учетом интерполированного цвета
+            image.setRGB(x, y, interpolatedColorRGB);
         }
 
-        repaint(); // Перерисовка панели, чтобы отобразить обновленное буфферное изображение
+        repaint();
     }
-
     public static void main(String[] args) {
-        JFrame frame = new JFrame("DDA Interpolated Line Drawing");
-        int width = 400;
-        int height = 400;
+        JFrame frame = new JFrame("Dynamic Line Drawing");
+        int width = 800;
+        int height = 800;
         frame.setSize(width, height);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        DDAInterpolatedLineDrawing panel = new DDAInterpolatedLineDrawing(width, height);
+        DynamicLineDrawing panel = new DynamicLineDrawing(width, height);
         frame.add(panel);
-        panel.drawInterpolatedLine(10, 10, 350, 350, new Color(0x0000FF),
-                new Color(0xFF0000));
 
         frame.setVisible(true);
     }
